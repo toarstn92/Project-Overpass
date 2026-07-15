@@ -51,6 +51,8 @@ An agentic assistant that takes a user message about their emotional state and r
 
 ### 1. Clone and install
 
+> **Developed with Python 3.12**
+
 ```bash
 git clone <your-repo-url>
 cd Project-Overpass
@@ -150,9 +152,6 @@ Project-Overpass/
 │   └── app.py               # Streamlit chat UI + admin dashboard
 ├── notebooks/
 │   └── exploration.ipynb    # Router tuning, embedding analysis
-├── raw_data_pack/
-│   ├── assessment_data_pack.zip
-│   └── Brdge_Senior_DS_Assessment.pdf
 ├── tests/
 │   ├── test_messages.py     # Assessment test cases
 │   └── test_responses.txt   # Assistant's output for each of the testing messages
