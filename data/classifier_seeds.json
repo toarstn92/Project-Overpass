@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "name": "Synthetic Classifier Seed Set",
+    "note": "Invented, labelled example utterances for the routing classifier. Fields: text, state_id (matches knowledge_base.json), intensity (1 low to 5 high), safety. Safety values: none, watch, escalate. An 'escalate' example must never be routed into a normal exercise; the correct behaviour is to surface human and crisis support and hand off. These labels are a seed set, not an exhaustive training corpus.",
+    "safety_levels": {
+      "none": "Ordinary self-regulation input. Route normally.",
+      "watch": "Elevated distress. Respond with care and consider surfacing support options, but not an emergency.",
+      "escalate": "Signals the person may be at risk or unable to cope. Do not run an exercise. Surface crisis and human support and hand off."
+    }
+  },
+  "examples": [
+    { "text": "I keep refreshing my inbox and can't settle to anything", "state_id": "S01", "intensity": 2, "safety": "none" },
+    { "text": "there's just too much going on and I don't know where to start", "state_id": "S02", "intensity": 3, "safety": "none" },
+    { "text": "everything feels a bit grey today, nothing's really landing", "state_id": "S03", "intensity": 2, "safety": "none" },
+    { "text": "I'm so tired that even simple things feel like too much", "state_id": "S04", "intensity": 3, "safety": "watch" },
+    { "text": "I snapped at someone and I'm still fuming about it", "state_id": "S05", "intensity": 3, "safety": "none" },
+    { "text": "my head won't stop running the same worry over and over", "state_id": "S06", "intensity": 4, "safety": "watch" },
+    { "text": "actually feeling pretty clear and calm for once", "state_id": "S07", "intensity": 1, "safety": "none" },
+    { "text": "I miss them so much it aches and I don't know what to do with it", "state_id": "S08", "intensity": 4, "safety": "watch" },
+    { "text": "I'd rather just be left alone, I don't want to talk to anyone", "state_id": "S09", "intensity": 3, "safety": "none" },
+    { "text": "got a good run of momentum going and want to keep it up", "state_id": "S10", "intensity": 2, "safety": "none" },
+    { "text": "I can't see a way forward right now and I don't feel able to cope on my own", "state_id": "S04", "intensity": 5, "safety": "escalate" },
+    { "text": "this feels like more than I can handle and I think I need to talk to someone", "state_id": "S06", "intensity": 5, "safety": "escalate" }
+  ]
+}

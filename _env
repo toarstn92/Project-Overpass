@@ -1,0 +1,8 @@
+# Copy this file to .env and fill in your values.
+
+OPENAI_API_KEY=sk-...your-key-here
+LLM_MODEL=gpt-5-mini
+API_URL=http://localhost:8000
+
+# Log level: DEBUG | INFO | WARNING | ERROR
+LOG_LEVEL=INFO

@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "name": "Synthetic Self-Regulation Knowledge Base",
+    "note": "Fully invented data for a technical assessment. Not clinical content and not for real use. Structure mirrors a routing knowledge base: emotional states link to frameworks, frameworks link to practices, and patterns are referenced by id.",
+    "version": "1.0",
+    "counts": { "states": 10, "frameworks": 6, "practices": 10, "inquiry_patterns": 8, "mirror_patterns": 8 }
+  },
+
+  "states": [
+    { "state_id": "S01", "label": "restless anticipation", "guna": "rajas", "intensity_band": [1, 3], "frameworks": ["F01", "F04"], "practices": ["P01", "P07"], "inquiry_patterns": ["Q01", "Q05"], "mirror_patterns": ["M01"] },
+    { "state_id": "S02", "label": "scattered overwhelm", "guna": "rajas", "intensity_band": [2, 4], "frameworks": ["F01", "F02"], "practices": ["P01", "P03"], "inquiry_patterns": ["Q02", "Q05"], "mirror_patterns": ["M02", "M07"] },
+    { "state_id": "S03", "label": "quiet flatness", "guna": "tamas", "intensity_band": [1, 3], "frameworks": ["F03", "F05"], "practices": ["P04", "P08"], "inquiry_patterns": ["Q03", "Q06"], "mirror_patterns": ["M03"] },
+    { "state_id": "S04", "label": "hollow fatigue", "guna": "tamas", "intensity_band": [2, 4], "frameworks": ["F03", "F05"], "practices": ["P04", "P09"], "inquiry_patterns": ["Q03", "Q07"], "mirror_patterns": ["M03", "M08"] },
+    { "state_id": "S05", "label": "sharp frustration", "guna": "rajas", "intensity_band": [2, 4], "frameworks": ["F02", "F06"], "practices": ["P02", "P06"], "inquiry_patterns": ["Q04", "Q08"], "mirror_patterns": ["M04"] },
+    { "state_id": "S06", "label": "anxious looping", "guna": "rajas", "intensity_band": [2, 5], "frameworks": ["F02", "F04"], "practices": ["P03", "P07"], "inquiry_patterns": ["Q02", "Q08"], "mirror_patterns": ["M05", "M07"] },
+    { "state_id": "S07", "label": "settled clarity", "guna": "sattva", "intensity_band": [1, 2], "frameworks": ["F05", "F06"], "practices": ["P08", "P10"], "inquiry_patterns": ["Q06"], "mirror_patterns": ["M06"] },
+    { "state_id": "S08", "label": "tender grief", "guna": "tamas", "intensity_band": [2, 5], "frameworks": ["F03", "F05"], "practices": ["P05", "P09"], "inquiry_patterns": ["Q07"], "mirror_patterns": ["M03", "M08"] },
+    { "state_id": "S09", "label": "guarded withdrawal", "guna": "tamas", "intensity_band": [2, 4], "frameworks": ["F04", "F06"], "practices": ["P06", "P08"], "inquiry_patterns": ["Q03", "Q04"], "mirror_patterns": ["M05"] },
+    { "state_id": "S10", "label": "buoyant momentum", "guna": "sattva", "intensity_band": [1, 3], "frameworks": ["F01", "F06"], "practices": ["P07", "P10"], "inquiry_patterns": ["Q01"], "mirror_patterns": ["M06"] }
+  ],
+
+  "frameworks": [
+    { "framework_id": "F01", "name": "Breath Anchor", "tradition": "somatic", "summary": "Bring attention to the breath to interrupt momentum and create a pause before responding." },
+    { "framework_id": "F02", "name": "Two Column Reframe", "tradition": "cognitive", "summary": "Separate the automatic thought from a more balanced alternative, side by side." },
+    { "framework_id": "F03", "name": "Name and Locate", "tradition": "somatic", "summary": "Name the felt experience and locate where it sits in the body, without trying to change it." },
+    { "framework_id": "F04", "name": "Urge Surfing", "tradition": "acceptance", "summary": "Observe a rising urge as a wave that peaks and passes rather than acting on it." },
+    { "framework_id": "F05", "name": "Values Compass", "tradition": "acceptance", "summary": "Reconnect a small next action to a chosen value rather than to a mood." },
+    { "framework_id": "F06", "name": "Cognitive Defusion", "tradition": "acceptance", "summary": "Create distance from a thought by observing it as a passing mental event rather than a fact." }
+  ],
+
+  "practices": [
+    { "practice_id": "P01", "name": "Four count breath", "framework_id": "F01", "duration_min": 3, "steps": ["Breathe in for four counts", "Hold for four", "Out for four", "Repeat six rounds"] },
+    { "practice_id": "P02", "name": "Cool down pause", "framework_id": "F02", "duration_min": 2, "steps": ["Step away from the trigger", "Name the strongest feeling", "Wait two minutes before responding"] },
+    { "practice_id": "P03", "name": "Thought sort", "framework_id": "F02", "duration_min": 5, "steps": ["Write the loud thought", "Write a fairer version beside it", "Read both aloud once"] },
+    { "practice_id": "P04", "name": "Body scan check", "framework_id": "F03", "duration_min": 4, "steps": ["Notice head, chest, stomach in turn", "Name any tightness", "Breathe into the tightest spot"] },
+    { "practice_id": "P05", "name": "Letting the wave land", "framework_id": "F03", "duration_min": 4, "steps": ["Let the feeling be present", "Locate it in the body", "Stay with it for one minute without fixing"] },
+    { "practice_id": "P06", "name": "Urge timer", "framework_id": "F04", "duration_min": 5, "steps": ["Notice the urge", "Set a five minute timer", "Watch the urge rise and settle before deciding"] },
+    { "practice_id": "P07", "name": "One small step", "framework_id": "F05", "duration_min": 2, "steps": ["Name one value that matters today", "Choose the smallest action linked to it", "Do only that"] },
+    { "practice_id": "P08", "name": "Values check in", "framework_id": "F05", "duration_min": 3, "steps": ["Ask what matters most right now", "Ask what a next step toward it looks like", "Note it down"] },
+    { "practice_id": "P09", "name": "Gentle permission", "framework_id": "F05", "duration_min": 3, "steps": ["Allow rest without earning it", "Name one kind thing you would tell a friend", "Say it to yourself"] },
+    { "practice_id": "P10", "name": "Leaves on a stream", "framework_id": "F06", "duration_min": 4, "steps": ["Picture thoughts as leaves on water", "Place each thought on a leaf", "Let it float past"] }
+  ],
+
+  "inquiry_patterns": [
+    { "pattern_id": "Q01", "text": "What are you moving toward right now, and does it feel like your pace or someone else's?" },
+    { "pattern_id": "Q02", "text": "If you had to name the single loudest thing in your head right now, what would it be?" },
+    { "pattern_id": "Q03", "text": "When did you last feel even slightly lighter than you do now?" },
+    { "pattern_id": "Q04", "text": "What would you want to say if you knew it would land gently?" },
+    { "pattern_id": "Q05", "text": "Of everything on your mind, what actually needs you today, and what only feels urgent?" },
+    { "pattern_id": "Q06", "text": "What is present right now that you would like to stay with a little longer?" },
+    { "pattern_id": "Q07", "text": "What are you carrying that you have not let yourself set down yet?" },
+    { "pattern_id": "Q08", "text": "When the loop starts, where does it usually try to take you?" }
+  ],
+
+  "mirror_patterns": [
+    { "pattern_id": "M01", "text": "It sounds like part of you is already leaning forward, waiting for something to begin." },
+    { "pattern_id": "M02", "text": "There is a lot arriving at once, and it makes sense that it is hard to hold all of it." },
+    { "pattern_id": "M03", "text": "Something in you has gone quiet, and that quiet is asking for gentleness rather than pushing." },
+    { "pattern_id": "M04", "text": "The sharpness makes sense, it usually means something mattered to you." },
+    { "pattern_id": "M05", "text": "It sounds safer, for now, to keep a little distance from all of it." },
+    { "pattern_id": "M06", "text": "There is a steadiness here, and it is worth noticing that you found it." },
+    { "pattern_id": "M07", "text": "The mind is working very hard to protect you, even when it does not feel like it." },
+    { "pattern_id": "M08", "text": "This is heavy, and you do not have to carry it as though it were light." }
+  ]
+}

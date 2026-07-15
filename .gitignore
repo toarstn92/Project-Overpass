@@ -1,3 +1,6 @@
+# ingested data
+data/chroma/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -24,6 +27,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.DS_Store
 MANIFEST
 
 # PyInstaller
@@ -76,6 +80,7 @@ docs/_build/
 target/
 
 # Jupyter Notebook
+*.ipynb
 .ipynb_checkpoints
 
 # IPython
