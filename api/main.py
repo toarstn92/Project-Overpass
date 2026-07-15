@@ -38,7 +38,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 logger.info(
-    f"Starting Project Overpass API with {os.environ.get("LLM_MODEL", "gpt-5-mini")} model"
+    f"""Starting Project Overpass API with {os.environ.get("LLM_MODEL", "gpt-5-mini")} model"""
 )
 
 # App state

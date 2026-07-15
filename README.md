@@ -70,8 +70,17 @@ cp _env .env
 ### 3. Ingest the wisdom corpus
 
 ```bash
-python -m data.ingest
+python -m data.ingest --local
 ```
+> Additional arguments are available for the ingest script.
+>
+> | Argument | Description |
+> |---|---|
+> | *(no argument)* | Default — fetches and indexes remote sources only |
+> | `--local` | Ingests local sources only |
+> | `--remote` | Ingests remote sources only |
+> | `--local --remote` | Ingests both local and remote sources |
+> | `--force` | Re-indexes everything even if already populated |
 
 This fetches and indexes the four public sources (Tao Te Ching, Bhagavad Gita, NHS CBT, ACT Manual) into a local ChromaDB collection. Takes ~2–3 minutes on first run; subsequent runs are instant (already indexed).
 
