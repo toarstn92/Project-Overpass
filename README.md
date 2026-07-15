@@ -30,10 +30,10 @@ An agentic assistant that takes a user message about their emotional state and r
               ┌───────────────────────────┐───────────────────────┐
               │                           │                       │
          structured                   reflective                none
-              │                           │
-              ▼                           ▼
-       Knowledge Base Lookup        RAG Retrieval
-          (exact keys)         (ChromaDB, 4 sources)
+              │                           │                       │
+              ▼                           ▼                       ▼
+       Knowledge Base Lookup             RAG                Honest Refusal
+          (exact keys)         (ChromaDB, 4 sources)     (Warm fallback message)
               │                           │
               └──────┬────────────────────┘
                      ▼

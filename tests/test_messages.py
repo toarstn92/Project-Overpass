@@ -92,8 +92,8 @@ def test_message(client, response_file, case):
     data = resp.json()
 
     # Write to file
-    response_file.write(f"TEST STATEMENT: {case['note']}\n")
-    response_file.write(f"Message: {case['message']}\n")
+    response_file.write(f"TEST SENTENCE: {case['message']}\n")
+    response_file.write(f"Quick Note: {case['note']}\n")
     response_file.write(f"Path: {data.get('path', '—')}\n")
     response_file.write(f"State: {data.get('state_id', '—')} — {data.get('state_label', '—')}\n")
     response_file.write(f"Router Reasoning: {data.get('router_reasoning', '—')}\n")
