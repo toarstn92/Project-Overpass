@@ -59,7 +59,7 @@ cd Project-Overpass
 python init.py          # or double-click init.bat (Windows) / ./init.sh (macOS/Linux)
 ```
 
-`init.py` uses only the standard library. It starts a local launcher on `http://127.0.0.1:8765` and opens it in your browser. The page walks through three gated steps — each must succeed before the next unlocks:
+`init.py` uses only the standard library. It starts a local launcher on `http://127.0.0.1:8765` and opens it in your browser. In the GitHub Copilot app, use the **Run** script (defined in `.github/github-app.yml`) instead; the page opens in the app's built-in browser. The page walks through three gated steps — each must succeed before the next unlocks:
 
 1. **OpenAI API key** — the key is verified against OpenAI and written to `.env` (created from `_env`), along with the chosen `LLM_MODEL`.
 2. **Install dependencies & security audit** — creates `.venv`, installs `requirements.txt` and runs `pip-audit`. The audit must pass.

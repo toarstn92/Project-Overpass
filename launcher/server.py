@@ -624,7 +624,7 @@ def main(argv: list[str] | None = None) -> int:
     allowed_hosts.update({f"127.0.0.1:{port}", f"localhost:{port}"})
 
     url = f"http://127.0.0.1:{port}/"
-    print(f"Project Overpass launcher running at {url}  (Ctrl+C to quit)")
+    print(f"Project Overpass launcher running at {url}  (Ctrl+C to quit)", flush=True)
     if not args.no_browser:
         webbrowser.open(url)
     try:
