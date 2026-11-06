@@ -1,0 +1,13 @@
+# Vulnerability IDs that pip-audit is allowed to ignore.
+# One ID per line; anything after '#' is a comment.
+# Every entry MUST have a justification and should be removed once a fixed release exists.
+#
+# chromadb — all four advisories affect ChromaDB's *HTTP server* mode
+# (multi-tenant auth / RBAC / remote collection-config endpoints). No fixed
+# release exists (affects up to latest 1.5.9). Project Overpass only uses the
+# embedded chromadb.PersistentClient (agent/tools/wisdom_retriever.py) and never
+# starts or exposes a Chroma server, so the vulnerable code paths are unreachable.
+PYSEC-2026-311   # CVE-2026-45829 / GHSA-f4j7-r4q5-qw2c — pre-auth code injection via collections endpoint (server)
+PYSEC-2026-3813  # CVE-2026-45830 / GHSA-2wm9-hf6c-p5cr — cross-tenant data access (server auth)
+PYSEC-2026-3814  # CVE-2026-45833 / GHSA-36p7-vc44-83pf — code injection via collection update endpoint
+PYSEC-2026-3815  # CVE-2026-45831 / GHSA-xph7-9rjv-w5fr — SimpleRBACAuthorizationProvider scope check
