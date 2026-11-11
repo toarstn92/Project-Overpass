@@ -18,7 +18,9 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import secrets
+import shutil
 import subprocess
 import sys
 import threading
@@ -33,6 +35,10 @@ from typing import Callable
 from urllib.parse import parse_qs, urlparse
 
 from launcher.audit import ROOT, pip_audit_command
+from launcher.environments import (
+    WINDOWS, EnvironmentLock, linked_directory, load_selection, previous_environments,
+    project_name, python_in, save_selection, suggested_environment, valid_environment,
+)
 
 LAUNCHER_DIR = Path(__file__).resolve().parent
 INDEX_HTML = LAUNCHER_DIR / "index.html"
@@ -41,6 +47,7 @@ ENV_TEMPLATE = ROOT / "_env"
 REQUIREMENTS = ROOT / "requirements.txt"
 VENV_DIR = ROOT / ".venv"
 SETUP_MARKER = VENV_DIR / ".overpass-setup"
+SELECTION_FILE = ROOT / ".overpass-launcher.json"
 CHROMA_SQLITE = ROOT / "data" / "chroma" / "chroma.sqlite3"
 
 PLACEHOLDER_KEY = "sk-...your-key-here"
@@ -55,10 +62,22 @@ API_STARTUP_TIMEOUT = 15 * 60  # first start downloads the embedding model
 # ── Environment / .env helpers ──────────────────────────────────────────────
 
 def venv_python() -> Path:
-    return VENV_DIR / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    return python_in(VENV_DIR)
 
 
-def read_env_file(path: Path = ENV_FILE) -> dict[str, str]:
+def select_environment(directory: Path) -> None:
+    global VENV_DIR, SETUP_MARKER
+    VENV_DIR = directory.expanduser().resolve()
+    SETUP_MARKER = VENV_DIR / ".overpass-setup"
+
+
+def initial_environment(explicit: Path | None) -> Path:
+    saved = load_selection(SELECTION_FILE)
+    return Path(explicit or os.environ.get("OVERPASS_VENV") or saved.get("venv") or ROOT / ".venv")
+
+
+def read_env_file(path: Path | None = None) -> dict[str, str]:
+    path = ENV_FILE if path is None else path
     values: dict[str, str] = {}
     if not path.exists():
         return values
@@ -315,26 +334,144 @@ class Launcher:
         self.open_browser = open_browser
         self.jobs = {name: Job(name) for name in ("setup", "api", "frontend", "tests")}
         self._api_lock = threading.Lock()
+        self.admission_lock = threading.Lock()
+        self._environment_lock: EnvironmentLock | None = None
+        self._locked_directory: Path | None = None
+        self.failed_local = load_selection(SELECTION_FILE).get("failed_local", False)
+        self.recovery_reason = ""
+
+    def claim_environment(self) -> None:
+        if self._locked_directory == VENV_DIR:
+            return
+        lease = EnvironmentLock(VENV_DIR)
+        lease.acquire()
+        self.release_environment()
+        self._environment_lock = lease
+        self._locked_directory = VENV_DIR
+
+    def release_environment(self) -> None:
+        if self._environment_lock:
+            self._environment_lock.release()
+        self._environment_lock = None
+        self._locked_directory = None
+
+    def recovery_options(self) -> dict:
+        result = {
+            "available": WINDOWS and bool(self.recovery_reason or self.failed_local),
+            "reason": self.recovery_reason,
+            "suggested": "", "previous": [], "error": "",
+        }
+        if WINDOWS:
+            try:
+                name = project_name(read_env_file(), read_env_file(ENV_TEMPLATE))
+                result["suggested"] = str(suggested_environment(ROOT, name))
+                result["previous"] = previous_environments(name)
+            except (OSError, ValueError) as exc:
+                result["error"] = str(exc)
+        return result
+
+    def start_setup(self, directory: str | None = None) -> None:
+        """Caller holds admission_lock across environment selection and job admission."""
+        if any(job.busy for job in self.jobs.values()):
+            raise ValueError("Stop running services/tests and wait for setup before changing the environment.")
+        if directory is not None:
+            if not self.recovery_options()["available"]:
+                raise ValueError("Short-path retry is not available for this setup.")
+            if not isinstance(directory, str) or not directory.strip():
+                raise ValueError("Choose an absolute environment path.")
+            destination = Path(directory).expanduser()
+            if not destination.is_absolute():
+                raise ValueError("Choose an absolute environment path.")
+            if destination.exists() and linked_directory(destination):
+                raise ValueError("The replacement environment must not be a symlink or junction.")
+            destination = destination.resolve()
+            if destination == VENV_DIR or len(str(destination)) >= len(str(ROOT / ".venv")):
+                raise ValueError("Choose a different environment path shorter than the project's .venv path.")
+            if destination == ROOT or destination in ROOT.parents:
+                raise ValueError("The replacement must not be the project folder or its parent.")
+            if destination.exists() and not valid_environment(destination):
+                raise ValueError("The selected folder exists but is not a Python virtual environment.")
+            lease = EnvironmentLock(destination)
+            lease.acquire()
+            try:
+                save_selection(SELECTION_FILE, destination, self.failed_local)
+            except OSError:
+                lease.release()
+                raise
+            self.release_environment()
+            select_environment(destination)
+            self._environment_lock, self._locked_directory = lease, destination
+        else:
+            self.claim_environment()
+        if not self.jobs["setup"].start(self.setup):
+            raise ValueError("Setup is already running.")
+
+    def record_install_failure(self, job: Job, message: str = "Installing requirements.txt failed.") -> None:
+        output = "\n".join(job.read_log(0)[0])
+        explicit = bool(re.search(r"winerror\s*206|filename.{0,30}too long|file name.{0,30}too long", output, re.I))
+        if WINDOWS and (explicit or len(str(VENV_DIR)) > 80):
+            self.recovery_reason = (
+                "Windows reported a path-length error." if explicit
+                else "The environment path is long; this may have caused the installation failure. See the pip log."
+            )
+            local = ROOT / ".venv"
+            if VENV_DIR == local.resolve() and local.exists() and not linked_directory(local):
+                self.failed_local = secrets.token_hex(16)
+                (local / ".overpass-failed").write_text(self.failed_local, encoding="utf-8")
+            save_selection(SELECTION_FILE, VENV_DIR, self.failed_local)
+            job.set("failed", message + " " + self.recovery_reason + " Try a shorter folder below.")
+        else:
+            job.set("failed", message + " See the setup log.")
+
+    def cleanup_failed_local(self, job: Job) -> None:
+        if not self.failed_local:
+            return
+        local = ROOT / ".venv"
+        if local.exists():
+            lease = EnvironmentLock(local)
+            lease.acquire()
+            try:
+                if linked_directory(local) or local.resolve() == VENV_DIR or not valid_environment(local):
+                    raise ValueError("Refusing to delete .venv: it is linked, selected, or not a valid environment.")
+                if (local / ".overpass-failed").read_text(encoding="utf-8") != self.failed_local:
+                    raise ValueError("Refusing to delete .venv: it no longer matches the failed environment.")
+                job.log(f"Removing the failed environment at {local}")
+                target = str(local.resolve())
+                if os.name == "nt":
+                    # The failed installation can itself contain paths longer than MAX_PATH.
+                    target = "\\\\?\\UNC\\" + target[2:] if target.startswith("\\\\") else "\\\\?\\" + target
+                shutil.rmtree(target)
+            finally:
+                lease.release()
+        save_selection(SELECTION_FILE, VENV_DIR, False)
+        self.failed_local = False
 
     # Step 2 – environment + dependency audit
     def setup(self, job: Job) -> None:
+        SETUP_MARKER.unlink(missing_ok=True)
         py = venv_python()
         if not py.exists():
             job.log(f"Creating virtual environment in {VENV_DIR} …")
             if run_step(job, [sys.executable, "-m", "venv", str(VENV_DIR)]) != 0:
-                return job.set("failed", "Could not create the virtual environment.")
+                return self.record_install_failure(job, "Could not create the virtual environment.")
         if run_step(job, [str(py), "-m", "pip", "install", "--upgrade", "pip"]) != 0:
-            return job.set("failed", "Upgrading pip failed.")
+            return self.record_install_failure(job, "Upgrading pip failed.")
         if run_step(job, [str(py), "-m", "pip", "install", "-r", str(REQUIREMENTS)]) != 0:
-            hint = ""
-            if os.name == "nt" and len(str(VENV_DIR)) > 80:
-                hint = (" The project path is long — enable Windows long-path support or restart with "
-                        "'python init.py --venv C:\\overpass-venv'.")
-            return job.set("failed", "Installing requirements.txt failed." + hint)
+            return self.record_install_failure(job)
         if not self.audit(job):
             SETUP_MARKER.unlink(missing_ok=True)
-            return job.set("failed", "pip-audit found vulnerabilities — update requirements.txt and retry.")
+            return job.set("failed", "pip-audit failed — see the log and resolve the audit error before retrying.")
+        save_selection(SELECTION_FILE, VENV_DIR, self.failed_local)
         SETUP_MARKER.write_text(requirements_hash(), encoding="utf-8")
+        if self.failed_local and VENV_DIR != (ROOT / ".venv").resolve():
+            try:
+                self.cleanup_failed_local(job)
+            except (OSError, ValueError, RuntimeError) as exc:
+                return job.set("succeeded", f"Environment ready and pip-audit passed, but cleanup is incomplete: {exc}")
+        elif self.failed_local:
+            save_selection(SELECTION_FILE, VENV_DIR, False)
+            self.failed_local = False
+        self.recovery_reason = ""
         job.set("succeeded", "Environment ready and pip-audit passed.")
 
     def audit(self, job: Job) -> bool:
@@ -437,7 +574,10 @@ class Launcher:
                 "masked": mask_key(key) if configured else "",
                 "model": env.get("LLM_MODEL") or DEFAULT_MODEL,
             },
-            "setup": {"complete": setup_complete(), "venv": venv_python().exists()},
+            "setup": {
+                "complete": setup_complete(), "venv": venv_python().exists(),
+                "path": str(VENV_DIR), "recovery": self.recovery_options(),
+            },
             "jobs": {n: {"state": j.state, "message": j.message} for n, j in self.jobs.items()},
             "urls": {
                 "api": api_base_url(),
@@ -531,8 +671,13 @@ def make_handler(launcher: Launcher, token: str, allowed_hosts: set[str], shutdo
             if path == "/api/setup":
                 if not api_key_configured():
                     return self._json({"error": "Configure the OpenAI API key first."}, 409)
-                if not launcher.jobs["setup"].start(launcher.setup):
-                    return self._json({"error": "Setup is already running."}, 409)
+                try:
+                    with launcher.admission_lock:
+                        if "venv" in body and not isinstance(body["venv"], str):
+                            raise ValueError("Choose an absolute environment path.")
+                        launcher.start_setup(body.get("venv"))
+                except (OSError, ValueError, RuntimeError) as exc:
+                    return self._json({"error": str(exc)}, 409)
                 return self._json({"ok": True})
 
             if path == "/api/run":
@@ -541,12 +686,17 @@ def make_handler(launcher: Launcher, token: str, allowed_hosts: set[str], shutdo
                     return self._json({"error": "Unknown target."}, 400)
                 if not api_key_configured():
                     return self._json({"error": "Configure the OpenAI API key first."}, 409)
-                if not setup_complete():
-                    return self._json({"error": "Complete step 2 (install + pip-audit) first."}, 409)
-                if launcher.jobs["setup"].busy:
-                    return self._json({"error": "Wait for setup to finish."}, 409)
-                if not launcher.jobs[target].start(runners[target]):
-                    return self._json({"error": f"{target} is already running."}, 409)
+                with launcher.admission_lock:
+                    if not setup_complete():
+                        return self._json({"error": "Complete step 2 (install + pip-audit) first."}, 409)
+                    if launcher.jobs["setup"].busy:
+                        return self._json({"error": "Wait for setup to finish."}, 409)
+                    try:
+                        launcher.claim_environment()
+                    except (OSError, RuntimeError) as exc:
+                        return self._json({"error": str(exc)}, 409)
+                    if not launcher.jobs[target].start(runners[target]):
+                        return self._json({"error": f"{target} is already running."}, 409)
                 return self._json({"ok": True})
 
             if path == "/api/stop":
@@ -592,14 +742,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Open the Project Overpass setup page.")
     parser.add_argument("--port", type=int, default=8765, help="Launcher port (default 8765)")
     parser.add_argument("--no-browser", action="store_true", help="Don't open browser windows automatically")
-    parser.add_argument("--venv", type=Path, default=os.environ.get("OVERPASS_VENV"),
+    parser.add_argument("--venv", type=Path,
                         help="Virtual environment location (default: .venv in the project folder)")
     args = parser.parse_args(argv)
 
-    if args.venv:
-        global VENV_DIR, SETUP_MARKER
-        VENV_DIR = Path(args.venv).expanduser().resolve()
-        SETUP_MARKER = VENV_DIR / ".overpass-setup"
+    try:
+        select_environment(initial_environment(args.venv))
+    except (OSError, ValueError) as exc:
+        print(f"Launcher configuration error: {exc}", file=sys.stderr)
+        return 1
 
     if sys.version_info < (3, 10):
         print("Project Overpass needs Python 3.10+ (developed with 3.12).", file=sys.stderr)
@@ -633,5 +784,6 @@ def main(argv: list[str] | None = None) -> int:
         print("\nShutting down…")
     finally:
         launcher.stop_all()
+        launcher.release_environment()
         server.server_close()
     return 0

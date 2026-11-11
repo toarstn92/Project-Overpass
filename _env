@@ -1,5 +1,6 @@
 # Copy this file to .env and fill in your values.
 
+PROJECT_NAME=Project-Overpass
 OPENAI_API_KEY=sk-...your-key-here
 LLM_MODEL=gpt-5-mini
 API_URL=http://localhost:8000

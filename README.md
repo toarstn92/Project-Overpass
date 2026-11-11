@@ -73,6 +73,39 @@ Logs for every step stream into the page. Use **Stop everything & quit** (or `Ct
 | `--no-browser` | Don't open browser windows automatically |
 | `--venv PATH` | Virtual-environment location (default `.venv`; also `OVERPASS_VENV`). Useful on Windows when the project path is too long for pip without long-path support |
 
+#### Windows long-path recovery
+
+If dependency installation fails because of a long Windows path (or the long path is a
+possible cause), step 2 offers **Retry with a shorter environment path**. The default is
+`C:\venvs\Project-Overpass\<worktree_code>`, where the code is stable for that checkout.
+`PROJECT_NAME=Project-Overpass` in `_env` sets the project folder name; existing `.env`
+files without this setting use the template's value.
+
+You can edit the destination or choose a valid existing environment listed under
+`C:\venvs\Project-Overpass`. Reusing an environment installs the current requirements
+into it and runs pip-audit again. Another launcher cannot modify or run that
+environment while this launcher holds it; stop the other launcher or choose a
+different folder if it is in use. These locks cover this launcher's processes,
+not unrelated Python commands started manually.
+
+No launcher restart or change to Copilot's **Run** command is needed. The chosen path
+is remembered in the git-ignored `.overpass-launcher.json`. Selection priority is
+`--venv`, then `OVERPASS_VENV`, then the remembered path, then the project's `.venv`.
+An explicit override therefore still wins next time, even if you pick a different
+folder in the page for the current run.
+
+Once replacement installation and pip-audit succeed and the choice is saved, the
+launcher removes only the failed project-local `.venv` it recorded. It never removes
+an external environment, a linked folder, or an environment that no longer matches
+the recorded failure. Failed recovery leaves the old `.venv` intact; cleanup errors
+are reported separately from successful replacement setup.
+
+If `C:\venvs` is not writable, choose another short absolute path that you can write
+to. The retry does not change Windows settings and cannot fix unrelated package or
+network failures. To return to the default `.venv`, stop the launcher and its services,
+remove `.overpass-launcher.json`, clear any `OVERPASS_VENV` override, and restart without
+`--venv`; setup will recreate `.venv`.
+
 #### Dependency security (pip-audit)
 
 `requirements.txt` is pinned to versions that pass `pip-audit`. The only accepted findings are listed, with justification, in `pip-audit-ignore.txt` (ChromaDB HTTP-server advisories with no fixed release; this project only uses the embedded `PersistentClient`). `tests/test_pip_audit.py` fails if the environment has any other known vulnerability. To run the audit by hand:
@@ -188,12 +221,14 @@ Project-Overpass/
 ├── launcher/
 │   ├── server.py            # Local setup/run web server used by init.py (stdlib only)
 │   ├── index.html           # Guided setup page
+│   ├── environments.py      # Environment selection, discovery, and launcher locks
 │   └── audit.py             # Shared pip-audit command + ignore-list loader
 ├── notebooks/
 │   └── exploration.ipynb    # Router tuning, embedding analysis
 ├── tests/
 │   ├── test_messages.py     # Assessment test cases
 │   ├── test_pip_audit.py    # Dependency vulnerability audit
+│   ├── test_launcher.py     # Isolated environment-recovery regression tests
 │   └── test_responses.txt   # Assistant's output for each of the testing messages
 ├── _env                  # Template environment file
 ├── init.py               # One-step setup: opens the guided setup page

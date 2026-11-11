@@ -28,7 +28,8 @@
   label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
   .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
   .row > div { flex: 1; min-width: 200px; }
-  input { width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border); background: #0b1324; color: var(--text); font: inherit; }
+  input, select { width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border); background: #0b1324; color: var(--text); font: inherit; }
+  code { overflow-wrap: anywhere; }
   button { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #04263a; font: inherit; font-weight: 600; cursor: pointer; }
   button.secondary { background: transparent; color: var(--accent); }
   button.danger { background: transparent; color: var(--bad); border-color: var(--bad); }
@@ -75,6 +76,21 @@
     <p class="help">Creates <code>.venv</code>, installs <code>requirements.txt</code> and runs <code>pip-audit</code>. The audit must pass to continue
       (accepted, justified exceptions live in <code>pip-audit-ignore.txt</code>). First run can take several minutes.</p>
     <button id="runSetup">Install &amp; audit</button>
+    <p class="help">Environment: <code id="environmentPath">.venv</code></p>
+    <div id="recovery" hidden>
+      <p class="help" id="recoveryReason"></p>
+      <p class="help">Create a shorter environment or select one previously used by this project.
+        Requirements will be installed and audited there. The choice is remembered for this checkout;
+        explicit <code>--venv</code> or <code>OVERPASS_VENV</code> settings still win on restart.
+        The failed local <code>.venv</code> is removed only after the replacement passes installation and audit.</p>
+      <label for="previousEnvironments">Existing project environments</label>
+      <select id="previousEnvironments"><option value="">Create a new environment</option></select>
+      <label for="recoveryPath">Replacement environment path</label>
+      <input id="recoveryPath" spellcheck="false">
+      <button class="secondary" id="retrySetup" style="margin-top:8px">Retry with a shorter environment path</button>
+    </div>
+    <div class="msg warn" id="recoveryError"></div>
+    <div class="msg" id="setupRequestMsg"></div>
     <div class="msg" id="setupMsg"></div>
     <pre class="log" id="setupLog" hidden></pre>
   </section>
@@ -169,9 +185,24 @@ $("#skipVerify").addEventListener("click", () => saveKey(true));
 // Step 2
 $("#runSetup").addEventListener("click", async () => {
   const r = await call("/api/setup", {});
-  if (!r.ok) setMsg($("#setupMsg"), r.data.error, "bad");
+  setMsg($("#setupRequestMsg"), r.ok ? "" : r.data.error, r.ok ? "" : "bad");
   $("#setupLog").hidden = false;
   refresh();
+});
+$("#previousEnvironments").addEventListener("change", e => {
+  $("#recoveryPath").value = e.target.value || status.setup.recovery.suggested;
+});
+$("#retrySetup").addEventListener("click", async () => {
+  $("#retrySetup").disabled = true;
+  try {
+    const r = await call("/api/setup", { venv: $("#recoveryPath").value.trim() });
+    setMsg($("#setupRequestMsg"), r.ok ? "" : r.data.error, r.ok ? "" : "bad");
+    $("#setupLog").hidden = false;
+  } catch (error) {
+    setMsg($("#setupRequestMsg"), `Retry request failed: ${error.message}`, "bad");
+  } finally {
+    refresh();
+  }
 });
 
 // Step 3
@@ -227,12 +258,31 @@ function render() {
 
   const setup = s.jobs.setup;
   const setupOk = s.setup.complete;
+  const active = Object.values(s.jobs).some(job => ["running", "ready"].includes(job.state));
+  $("#environmentPath").textContent = s.setup.path;
+  const recovery = s.setup.recovery;
+  $("#recovery").hidden = !recovery.available;
+  $("#recoveryReason").textContent = recovery.reason || "A failed local environment is waiting for recovery.";
+  setMsg($("#recoveryError"), recovery.error, "warn");
+  if (!$("#recoveryPath").value) $("#recoveryPath").value = recovery.suggested;
+  const previous = $("#previousEnvironments");
+  const signature = JSON.stringify(recovery.previous);
+  if (previous.dataset.signature !== signature) {
+    const selected = previous.value;
+    previous.replaceChildren(new Option("Create a new environment", ""));
+    recovery.previous.forEach(path => previous.add(new Option(path, path)));
+    if (recovery.previous.includes(selected)) previous.value = selected;
+    previous.dataset.signature = signature;
+  }
+  $("#retrySetup").disabled = active;
+  $("#previousEnvironments").disabled = active;
+  $("#recoveryPath").disabled = active;
   $("#step2").classList.toggle("locked", !keyOk);
   $("#step2").classList.toggle("done", setupOk && setup.state !== "running");
   if (setup.state === "running") pill($("#s2pill"), "running");
   else if (setupOk) { $("#s2pill").textContent = "installed · audit passed"; $("#s2pill").className = "pill ok"; }
   else pill($("#s2pill"), setup.state === "idle" ? "pending" : setup.state);
-  $("#runSetup").disabled = setup.state === "running";
+  $("#runSetup").disabled = active;
   $("#runSetup").textContent = setupOk ? "Re-install & audit" : "Install & audit";
   if (setup.state !== "idle") { $("#setupLog").hidden = false;
     setMsg($("#setupMsg"), setup.message, setup.state === "failed" ? "bad" : setup.state === "succeeded" ? "ok" : ""); }
