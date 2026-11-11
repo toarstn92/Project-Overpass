@@ -1,0 +1,10 @@
+instructions: |
+  Start the app with init.py, which serves the guided setup page (API key -> install + pip-audit -> run API / frontend / tests).
+  pip-audit must pass before every app run; justified exceptions live in pip-audit-ignore.txt.
+
+scripts:
+  - name: Run
+    command: python -u init.py --no-browser
+
+server_ready_pattern: 'launcher running at (https?://\S+)'
+auto_open_in_browser: true

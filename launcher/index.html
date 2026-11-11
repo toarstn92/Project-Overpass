@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Overpass — Setup</title>
+<style>
+  :root {
+    --bg: #0f172a; --card: #111c33; --border: #23314f; --text: #e2e8f0; --muted: #94a3b8;
+    --accent: #38bdf8; --ok: #22c55e; --warn: #f59e0b; --bad: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  main { max-width: 920px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+  .step { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin-bottom: 18px; }
+  .step.locked { opacity: .45; pointer-events: none; }
+  .step-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .num { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--border); font-weight: 700; }
+  .step.done .num { background: var(--ok); color: #052e12; }
+  .step-head h2 { font-size: 18px; margin: 0; flex: 1; }
+  .pill { font-size: 12px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+  .pill.ok { color: var(--ok); border-color: var(--ok); }
+  .pill.run { color: var(--accent); border-color: var(--accent); }
+  .pill.bad { color: var(--bad); border-color: var(--bad); }
+  p.help { color: var(--muted); margin: 4px 0 14px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+  .row > div { flex: 1; min-width: 200px; }
+  input, select { width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border); background: #0b1324; color: var(--text); font: inherit; }
+  code { overflow-wrap: anywhere; }
+  button { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #04263a; font: inherit; font-weight: 600; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--accent); }
+  button.danger { background: transparent; color: var(--bad); border-color: var(--bad); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .msg { margin-top: 10px; font-size: 14px; min-height: 1em; }
+  .msg.ok { color: var(--ok); } .msg.bad { color: var(--bad); } .msg.warn { color: var(--warn); }
+  .targets { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .target { border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .target.active { border-color: var(--accent); }
+  .target h3 { margin: 0; font-size: 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .target p { margin: 0; color: var(--muted); font-size: 13px; flex: 1; }
+  .target .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .target a { color: var(--accent); font-size: 13px; }
+  pre.log { background: #050a16; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 14px 0 0; height: 260px; overflow: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+  .log-tabs { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+  .log-tabs button { padding: 4px 12px; font-size: 13px; background: transparent; color: var(--muted); border-color: var(--border); }
+  .log-tabs button.sel { color: var(--accent); border-color: var(--accent); }
+  footer { color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Project Overpass</h1>
+  <p class="sub">Guided setup — complete each step to unlock the next. <span id="py"></span></p>
+
+  <!-- Step 1 -->
+  <section class="step" id="step1">
+    <div class="step-head"><div class="num">1</div><h2>OpenAI API key</h2><span class="pill" id="s1pill">required</span></div>
+    <p class="help">The key is verified with OpenAI and saved to <code>.env</code> (git-ignored) in the project folder.</p>
+    <form id="keyForm" autocomplete="off">
+      <div class="row">
+        <div><label for="apiKey">API key</label><input id="apiKey" type="password" placeholder="sk-…" spellcheck="false"></div>
+        <div style="flex:0 0 180px;min-width:150px"><label for="model">Model</label><input id="model" value="gpt-5-mini" spellcheck="false"></div>
+        <button type="submit" id="saveKey">Verify &amp; save</button>
+      </div>
+    </form>
+    <div class="msg" id="keyMsg"></div>
+    <button class="secondary" id="skipVerify" hidden style="margin-top:8px">Save without verifying</button>
+  </section>
+
+  <!-- Step 2 -->
+  <section class="step locked" id="step2">
+    <div class="step-head"><div class="num">2</div><h2>Install dependencies &amp; security audit</h2><span class="pill" id="s2pill">pending</span></div>
+    <p class="help">Creates <code>.venv</code>, installs <code>requirements.txt</code> and runs <code>pip-audit</code>. The audit must pass to continue
+      (accepted, justified exceptions live in <code>pip-audit-ignore.txt</code>). First run can take several minutes.</p>
+    <button id="runSetup">Install &amp; audit</button>
+    <p class="help">Environment: <code id="environmentPath">.venv</code></p>
+    <div id="recovery" hidden>
+      <p class="help" id="recoveryReason"></p>
+      <p class="help">Create a shorter environment or select one previously used by this project.
+        Requirements will be installed and audited there. The choice is remembered for this checkout;
+        explicit <code>--venv</code> or <code>OVERPASS_VENV</code> settings still win on restart.
+        The failed local <code>.venv</code> is removed only after the replacement passes installation and audit.</p>
+      <label for="previousEnvironments">Existing project environments</label>
+      <select id="previousEnvironments"><option value="">Create a new environment</option></select>
+      <label for="recoveryPath">Replacement environment path</label>
+      <input id="recoveryPath" spellcheck="false">
+      <button class="secondary" id="retrySetup" style="margin-top:8px">Retry with a shorter environment path</button>
+    </div>
+    <div class="msg warn" id="recoveryError"></div>
+    <div class="msg" id="setupRequestMsg"></div>
+    <div class="msg" id="setupMsg"></div>
+    <pre class="log" id="setupLog" hidden></pre>
+  </section>
+
+  <!-- Step 3 -->
+  <section class="step locked" id="step3">
+    <div class="step-head"><div class="num">3</div><h2>Run</h2><span class="pill" id="s3pill">pending</span></div>
+    <p class="help">pip-audit runs again before every launch — nothing starts if it fails. The frontend and tests start the API automatically if needed.</p>
+    <div class="targets">
+      <div class="target" data-target="api">
+        <h3>API view <span class="pill">idle</span></h3>
+        <p>FastAPI backend with interactive Swagger docs.</p>
+        <div class="btns"><button data-run>Start</button><button class="danger" data-stop hidden>Stop</button></div>
+        <a data-link id="docsLink" target="_blank" rel="noopener" hidden>Open API docs ↗</a>
+      </div>
+      <div class="target" data-target="frontend">
+        <h3>Streamlit frontend <span class="pill">idle</span></h3>
+        <p>Chat UI and admin dashboard.</p>
+        <div class="btns"><button data-run>Start</button><button class="danger" data-stop hidden>Stop</button></div>
+        <a data-link id="feLink" target="_blank" rel="noopener" hidden>Open frontend ↗</a>
+      </div>
+      <div class="target" data-target="tests">
+        <h3>pytest tests <span class="pill">idle</span></h3>
+        <p>Dependency audit test plus the assessment message tests.</p>
+        <div class="btns"><button data-run>Run tests</button><button class="danger" data-stop hidden>Stop</button></div>
+      </div>
+    </div>
+    <div class="msg" id="runMsg"></div>
+    <div class="log-tabs" id="logTabs">
+      <button data-log="api" class="sel">API log</button>
+      <button data-log="frontend">Frontend log</button>
+      <button data-log="tests">Tests log</button>
+    </div>
+    <pre class="log" id="runLog"></pre>
+  </section>
+
+  <footer>
+    <span>Launcher runs locally on 127.0.0.1 only. Closing this tab does not stop running services.</span>
+    <button class="danger" id="quit">Stop everything &amp; quit</button>
+  </footer>
+</main>
+
+<script>
+const TOKEN = "__LAUNCHER_TOKEN__";
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+let status = null;
+let selectedLog = "api";
+const logCursor = {};
+const logText = { setup: "", api: "", frontend: "", tests: "" };
+
+async function call(path, body) {
+  const opts = { headers: { "X-Launcher-Token": TOKEN } };
+  if (body !== undefined) {
+    opts.method = "POST";
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(path, opts);
+  let data = {};
+  try { data = await res.json(); } catch (_) {}
+  return { ok: res.ok, status: res.status, data };
+}
+
+function setMsg(el, text, kind) { el.textContent = text || ""; el.className = "msg" + (kind ? " " + kind : ""); }
+
+function pill(el, state) {
+  const map = { idle: ["idle", ""], running: ["running…", "run"], ready: ["running", "ok"], succeeded: ["passed", "ok"],
+                failed: ["failed", "bad"], stopped: ["stopped", ""] };
+  const [text, cls] = map[state] || [state, ""];
+  el.textContent = text; el.className = "pill" + (cls ? " " + cls : "");
+}
+
+// Step 1
+async function saveKey(skipVerify) {
+  const api_key = $("#apiKey").value.trim();
+  const model = $("#model").value.trim();
+  const msg = $("#keyMsg");
+  if (!api_key) return setMsg(msg, "Enter your OpenAI API key.", "bad");
+  $("#saveKey").disabled = true;
+  setMsg(msg, "Verifying with OpenAI…");
+  const r = await call("/api/key", { api_key, model, skip_verify: !!skipVerify });
+  $("#saveKey").disabled = false;
+  $("#skipVerify").hidden = !(r.data && r.data.can_skip);
+  if (r.ok) { setMsg(msg, r.data.message, skipVerify ? "warn" : "ok"); $("#apiKey").value = ""; }
+  else setMsg(msg, (r.data && r.data.error) || "Failed to save key.", "bad");
+  refresh();
+}
+$("#keyForm").addEventListener("submit", e => { e.preventDefault(); saveKey(false); });
+$("#skipVerify").addEventListener("click", () => saveKey(true));
+
+// Step 2
+$("#runSetup").addEventListener("click", async () => {
+  const r = await call("/api/setup", {});
+  setMsg($("#setupRequestMsg"), r.ok ? "" : r.data.error, r.ok ? "" : "bad");
+  $("#setupLog").hidden = false;
+  refresh();
+});
+$("#previousEnvironments").addEventListener("change", e => {
+  $("#recoveryPath").value = e.target.value || status.setup.recovery.suggested;
+});
+$("#retrySetup").addEventListener("click", async () => {
+  $("#retrySetup").disabled = true;
+  try {
+    const r = await call("/api/setup", { venv: $("#recoveryPath").value.trim() });
+    setMsg($("#setupRequestMsg"), r.ok ? "" : r.data.error, r.ok ? "" : "bad");
+    $("#setupLog").hidden = false;
+  } catch (error) {
+    setMsg($("#setupRequestMsg"), `Retry request failed: ${error.message}`, "bad");
+  } finally {
+    refresh();
+  }
+});
+
+// Step 3
+$$(".target").forEach(card => {
+  const target = card.dataset.target;
+  $("[data-run]", card).addEventListener("click", async () => {
+    selectLog(target);
+    const r = await call("/api/run", { target });
+    setMsg($("#runMsg"), r.ok ? "" : r.data.error, r.ok ? "" : "bad");
+    refresh();
+  });
+  $("[data-stop]", card).addEventListener("click", async () => { await call("/api/stop", { target }); refresh(); });
+});
+$$("#logTabs button").forEach(b => b.addEventListener("click", () => selectLog(b.dataset.log)));
+function selectLog(name) {
+  selectedLog = name;
+  $$("#logTabs button").forEach(b => b.classList.toggle("sel", b.dataset.log === name));
+  const pre = $("#runLog"); pre.textContent = logText[name]; pre.scrollTop = pre.scrollHeight;
+}
+
+$("#quit").addEventListener("click", async () => {
+  if (!confirm("Stop all running services and close the launcher?")) return;
+  await call("/api/shutdown", {});
+  document.body.innerHTML = "<main><h1>Launcher stopped</h1><p class='sub'>Run <code>python init.py</code> to start again.</p></main>";
+  clearInterval(timer);
+});
+
+// Polling
+async function pullLog(job) {
+  const r = await call(`/api/logs?job=${job}&since=${logCursor[job] || 0}`);
+  if (!r.ok) return;
+  if (r.data.lines.length) {
+    logText[job] = (logText[job] + r.data.lines.join("\n") + "\n").slice(-200000);
+    const pre = job === "setup" ? $("#setupLog") : (job === selectedLog ? $("#runLog") : null);
+    if (pre) {
+      const atBottom = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 40;
+      pre.textContent = logText[job];
+      if (atBottom) pre.scrollTop = pre.scrollHeight;
+    }
+  }
+  logCursor[job] = r.data.next;
+}
+
+function render() {
+  const s = status;
+  $("#py").textContent = `Launcher Python ${s.python}.`;
+
+  const keyOk = s.key.configured;
+  $("#step1").classList.toggle("done", keyOk);
+  $("#s1pill").textContent = keyOk ? `configured (${s.key.masked})` : "required";
+  $("#s1pill").className = "pill" + (keyOk ? " ok" : "");
+  if (keyOk && document.activeElement !== $("#model")) $("#model").value = s.key.model;
+
+  const setup = s.jobs.setup;
+  const setupOk = s.setup.complete;
+  const active = Object.values(s.jobs).some(job => ["running", "ready"].includes(job.state));
+  $("#environmentPath").textContent = s.setup.path;
+  const recovery = s.setup.recovery;
+  $("#recovery").hidden = !recovery.available;
+  $("#recoveryReason").textContent = recovery.reason || "A failed local environment is waiting for recovery.";
+  setMsg($("#recoveryError"), recovery.error, "warn");
+  if (!$("#recoveryPath").value) $("#recoveryPath").value = recovery.suggested;
+  const previous = $("#previousEnvironments");
+  const signature = JSON.stringify(recovery.previous);
+  if (previous.dataset.signature !== signature) {
+    const selected = previous.value;
+    previous.replaceChildren(new Option("Create a new environment", ""));
+    recovery.previous.forEach(path => previous.add(new Option(path, path)));
+    if (recovery.previous.includes(selected)) previous.value = selected;
+    previous.dataset.signature = signature;
+  }
+  $("#retrySetup").disabled = active;
+  $("#previousEnvironments").disabled = active;
+  $("#recoveryPath").disabled = active;
+  $("#step2").classList.toggle("locked", !keyOk);
+  $("#step2").classList.toggle("done", setupOk && setup.state !== "running");
+  if (setup.state === "running") pill($("#s2pill"), "running");
+  else if (setupOk) { $("#s2pill").textContent = "installed · audit passed"; $("#s2pill").className = "pill ok"; }
+  else pill($("#s2pill"), setup.state === "idle" ? "pending" : setup.state);
+  $("#runSetup").disabled = active;
+  $("#runSetup").textContent = setupOk ? "Re-install & audit" : "Install & audit";
+  if (setup.state !== "idle") { $("#setupLog").hidden = false;
+    setMsg($("#setupMsg"), setup.message, setup.state === "failed" ? "bad" : setup.state === "succeeded" ? "ok" : ""); }
+
+  const unlocked = keyOk && setupOk && setup.state !== "running";
+  $("#step3").classList.toggle("locked", !unlocked);
+  const running = ["api", "frontend", "tests"].filter(t => ["running", "ready"].includes(s.jobs[t].state));
+  $("#s3pill").textContent = running.length ? `${running.length} active` : (unlocked ? "ready" : "pending");
+  $("#s3pill").className = "pill" + (running.length ? " run" : unlocked ? " ok" : "");
+
+  $$(".target").forEach(card => {
+    const job = s.jobs[card.dataset.target];
+    const busy = ["running", "ready"].includes(job.state);
+    pill($("h3 .pill", card), job.state);
+    card.classList.toggle("active", busy);
+    $("[data-run]", card).disabled = busy;
+    $("[data-stop]", card).hidden = !busy;
+    const link = $("[data-link]", card);
+    if (link) link.hidden = job.state !== "ready";
+  });
+  $("#docsLink").href = s.urls.docs;
+  $("#feLink").href = s.urls.frontend;
+}
+
+async function refresh() {
+  const r = await call("/api/status");
+  if (!r.ok) return;
+  status = r.data;
+  render();
+  const jobs = ["setup", "api", "frontend", "tests"].filter(j => status.jobs[j].state !== "idle" || logCursor[j]);
+  await Promise.all(jobs.map(pullLog));
+}
+const timer = setInterval(refresh, 1500);
+refresh();
+</script>
+</body>
+</html>
